@@ -5,300 +5,844 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WNBA Rax Stats</title>
   <style>
-    body { background-color: #121212; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
-    h1, h4, h5 { text-align: center; font-weight: normal; color: #ccc; }
-    h1 { color: #fff; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body { 
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: clamp(1.8rem, 5vw, 2.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    h4 {
+      text-align: center;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-bottom: 0.25rem;
+    }
+
+    h5 {
+      text-align: center;
+      color: #64748b;
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+
     .controls {
       display: flex;
       flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
       align-items: center;
-      gap: 10px;
-      margin: 20px 0;
+      margin-bottom: 2rem;
     }
-    input, select, button {
-      padding: 5px;
-      font-size: 1em;
-      background-color: #1e1e1e;
-      border: 1px solid #555;
-      color: #fff;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: #1e1e1e;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
-    }
-    th {
-      background-color: #333;
+
+    button, select {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #e2e8f0;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
       cursor: pointer;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(10px);
     }
-    th:hover {
-      background-color: #444;
+
+    button:hover, select:hover {
+      background: rgba(59, 130, 246, 0.2);
+      border-color: rgba(59, 130, 246, 0.5);
+      transform: translateY(-1px);
     }
-    .comparison-table th, .comparison-table td {
-      padding: 10px;
-      border: 1px solid #333;
+
+    button:active {
+      transform: translateY(0);
     }
-    .higher { color: #4CAF50; font-weight: bold; }
-    .lower { color: #F44336; font-weight: bold; }
-    .search-suggestions {
-      background-color: #1e1e1e;
-      border: 1px solid #555;
+
+    .search-container {
+      margin: 0 auto 2rem auto;
+      max-width: 400px;
+    }
+
+    .search-container .relative {
+      max-width: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .search-container input {
+      flex: 1;
+    }
+
+    .search-container button {
+      padding: 0.75rem 1rem;
+      min-width: auto;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .search-container button:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .comparison-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .comparison-header h3 {
+      margin: 0;
+      color: #f1f5f9;
+      font-size: 1.25rem;
+    }
+
+    .close-btn {
+      background: rgba(239, 68, 68, 0.1) !important;
+      border: 1px solid rgba(239, 68, 68, 0.3) !important;
+      color: #ef4444 !important;
+      padding: 0.5rem 0.75rem !important;
+      font-size: 1.25rem !important;
+      font-weight: bold !important;
+      line-height: 1 !important;
+      min-width: auto !important;
+    }
+
+    .close-btn:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+    }
+
+    .comparison-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .relative {
+      position: relative;
+      width: 100%;
+      max-width: 250px;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 0.75rem;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: rgba(59, 130, 246, 0.5);
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .suggestions {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 0.75rem;
       max-height: 200px;
       overflow-y: auto;
-      font-size: 0.9em;
+      display: none;
       position: absolute;
-      z-index: 1000;
+      z-index: 100;
+      width: 100%;
+      margin-top: 0.25rem;
+      backdrop-filter: blur(10px);
     }
-    .search-suggestions div {
-      padding: 5px;
+
+    .suggestions div {
+      padding: 0.75rem 1rem;
       cursor: pointer;
+      transition: background 0.2s ease;
+      font-size: 0.875rem;
     }
-    .search-suggestions div:hover {
-      background-color: #333;
+
+    #comparisonInputs {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      display: none;
+    }
+
+    .search-container {
+      margin: 0 auto 2rem auto;
+      max-width: 400px;
+    }
+
+    .search-container .relative {
+      max-width: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .search-container input {
+      flex: 1;
+    }
+
+    .search-container button {
+      padding: 0.75rem 1rem;
+      min-width: auto;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .search-container button:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .comparison-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .comparison-header h3 {
+      margin: 0;
+      color: #f1f5f9;
+      font-size: 1.25rem;
+    }
+
+    .close-btn {
+      background: rgba(239, 68, 68, 0.1) !important;
+      border: 1px solid rgba(239, 68, 68, 0.3) !important;
+      color: #ef4444 !important;
+      padding: 0.5rem 0.75rem !important;
+      font-size: 1.25rem !important;
+      font-weight: bold !important;
+      line-height: 1 !important;
+      min-width: auto !important;
+    }
+
+    .close-btn:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+    }
+
+    .table-container {
+      background: rgba(30, 41, 59, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 1rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    table {
+      width: 100%;
+      min-width: 700px; /* Ensures table doesn't get too cramped */
+      border-collapse: collapse;
+    }
+
+    th {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+      color: #f1f5f9;
+      font-weight: 600;
+      padding: 1rem 0.75rem;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      font-size: 0.875rem;
+      user-select: none;
+    }
+
+    th:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+    }
+
+    td {
+      padding: 0.875rem 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(71, 85, 105, 0.2);
+      font-size: 0.875rem;
+      transition: background 0.2s ease;
+    }
+
+    tr:hover td {
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .hot-label {
+      display: inline-block;
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    .cold-label {
+      display: inline-block;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    .stat-better {
+      color: #22c55e !important;
+      font-weight: 600;
+    }
+
+    .stat-worse {
+      color: #ef4444 !important;
+      font-weight: 600;
+    }
+
+    #hotColdSection {
+      background: rgba(30, 41, 59, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 1rem;
+      padding: 2rem;
+      display: none;
+    }
+
+    #hotColdSection h3 {
+      color: #f1f5f9;
+      margin-bottom: 1rem;
+      font-size: 1.25rem;
+    }
+
+    #hotColdSection ul {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    #hotColdSection li {
+      padding: 0.75rem 1rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid;
+    }
+
+    .hot {
+      border-left-color: #ef4444;
+      color: #fecaca;
+    }
+
+    .cold {
+      border-left-color: #3b82f6;
+      color: #bfdbfe;
+    }
+
+    #comparisonResult table {
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 0.75rem;
+      overflow: hidden;
+    }
+
+    #comparisonResult th {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .container {
+        padding: 0.75rem;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      button, select {
+        width: 100%;
+        text-align: center;
+      }
+
+      .comparison-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .search-container {
+        max-width: none;
+        margin: 0 0 1.5rem 0;
+      }
+
+      .search-container .relative {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .search-container button {
+        width: 100%;
+      }
+
+      .relative {
+        max-width: none;
+      }
+
+      .table-container {
+        margin: 0 -0.75rem; /* Allow table to use full screen width */
+        border-radius: 0.5rem;
+      }
+
+      table {
+        min-width: 800px; /* Slightly wider on mobile to ensure readability */
+        font-size: 0.8rem;
+      }
+
+      th, td {
+        padding: 0.6rem 0.4rem;
+        white-space: nowrap; /* Prevent text wrapping */
+      }
+
+      .hot-label, .cold-label {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.3rem;
+        margin-left: 0.25rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .table-container {
+        margin: 0 -0.75rem;
+        border-radius: 0.25rem;
+      }
+      
+      table {
+        min-width: 900px; /* Even wider on very small screens for readability */
+        font-size: 0.75rem;
+      }
+      
+      th, td {
+        padding: 0.5rem 0.3rem;
+      }
+
+      .hot-label, .cold-label {
+        font-size: 0.6rem;
+        padding: 0.1rem 0.25rem;
+      }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(59, 130, 246, 0.5);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(59, 130, 246, 0.7);
     }
   </style>
 </head>
 <body>
-  <h1>WNBA Rax Stats</h1>
-  <h4>Made by @tomfc</h4>
-  <h5>Click on a player to show their detailed earnings</h5>
+  <div class="container">
+    <h1>WNBA Rax Stats</h1>
+    <h4>Made by @tomfc</h4>
+    <h5>Select a rax/game filter before comparing for accurate comparison.</h5>
 
-  <div class="controls">
-    <input type="text" id="playerSearch" placeholder="Search players..." oninput="renderTable()">
-    <select id="gamesFilter">
-      <option value="full">Full Season</option>
-      <option value="10">Last 10 Games</option>
-      <option value="15">Last 15 Games</option>
-      <option value="20">Last 20 Games</option>
-    </select>
-    <button onclick="startComparison()">Compare Players</button>
+    <div class="controls">
+      <button onclick="startComparison()">Compare Players</button>
+      <button onclick="showHotCold()">View Hot/Cold Players</button>
+      <select id="gamesFilter" onchange="changeGamesFilter()">
+        <option value="full">Full Season</option>
+        <option value="10">Last 10 Games</option>
+        <option value="15">Last 15 Games</option>
+        <option value="20">Last 20 Games</option>
+      </select>
+    </div>
+
+    <div class="search-container">
+      <div class="relative">
+        <input type="text" id="playerSearch" placeholder="Search players..." oninput="searchPlayers(this.value)">
+        <button onclick="clearSearch()" id="clearSearchBtn" style="display: none;">Clear</button>
+      </div>
+    </div>
+
+    <div id="comparisonInputs">
+      <div class="comparison-header">
+        <h3>Compare Players</h3>
+        <button onclick="hideComparison()" class="close-btn">×</button>
+      </div>
+      <div class="comparison-row">
+        <div class="relative">
+          <input type="text" id="comparePlayer1" placeholder="Player 1 Name" oninput="updateSuggestions(this, 'suggestions1')">
+          <div id="suggestions1" class="suggestions"></div>
+        </div>
+        <div class="relative">
+          <input type="text" id="comparePlayer2" placeholder="Player 2 Name" oninput="updateSuggestions(this, 'suggestions2')">
+          <div id="suggestions2" class="suggestions"></div>
+        </div>
+      </div>
+      <div class="comparison-row">
+        <button onclick="comparePlayers()">Compare Now</button>
+      </div>
+      <div id="comparisonResult"></div>
+    </div>
+
+    <div class="table-container">
+      <table id="playerTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('firstName')">First</th>
+            <th onclick="sortTable('lastName')">Last</th>
+            <th onclick="sortTable('gamesPlayed')">Games</th>
+            <th onclick="sortTable('value')">Total Rax</th>
+            <th onclick="sortTable('raxPerGame')">Rax/Game</th>
+            <th onclick="sortTable('high')">High</th>
+            <th onclick="sortTable('low')">Low</th>
+            <th onclick="sortTable('stdDev')">Std Dev</th>
+          </tr>
+        </thead>
+        <tbody id="playerBody"></tbody>
+      </table>
+    </div>
+
+    <div id="hotColdSection">
+      <h3>Hot Players</h3>
+      <ul id="hotPlayers"></ul>
+      <h3>Cold Players</h3>
+      <ul id="coldPlayers"></ul>
+      <button onclick="exitHotCold()">Back</button>
+    </div>
   </div>
 
-  <div id="comparisonInputs" style="display:none; margin-top:10px; flex-wrap: wrap; gap: 5px;">
-    <div class="relative">
-      <input type="text" id="comparePlayer1" placeholder="Search Player 1..." oninput="showSuggestions(this, 1)" autocomplete="off">
-      <div id="suggestions1" class="search-suggestions" style="display:none;"></div>
-    </div>
-    <div class="relative">
-      <input type="text" id="comparePlayer2" placeholder="Search Player 2..." oninput="showSuggestions(this, 2)" autocomplete="off">
-      <div id="suggestions2" class="search-suggestions" style="display:none;"></div>
-    </div>
-    <button onclick="comparePlayers()">Compare Now</button>
-    <button onclick="exitComparison()">Back</button>
-  </div>
+  <script>
+    const workerUrl = 'https://wnba-rax.tomfconreal.workers.dev/';
+    let players = [];
+    let allPlayers = []; // Store original unfiltered list
+    let currentSort = { key: 'value', dir: 'desc' };
+    let gamesFilter = 'full';
+    let searchQuery = '';
 
-  <div id="comparisonResult"></div>
-  <div id="loading">Loading players...</div>
+    function stdDev(values) {
+      const avg = values.reduce((a,b) => a + b, 0) / values.length;
+      const squareDiffs = values.map(v => Math.pow(v - avg, 2));
+      return Math.sqrt(squareDiffs.reduce((a,b) => a + b, 0) / values.length);
+    }
 
-  <table id="playerTable">
-    <thead>
-      <tr>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th onclick="setSort('gamesPlayed')">Games Played ▲▼</th>
-        <th onclick="setSort('value')">Total Rax ▲▼</th>
-        <th onclick="setSort('raxPerGame')">Rax/Game ▲▼</th>
-      </tr>
-    </thead>
-    <tbody id="playerBody"></tbody>
-  </table>
+    function next7AMEST() {
+      const now = new Date();
+      const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const target = new Date(estNow);
+      target.setHours(7, 0, 0, 0);
+      if (estNow >= target) target.setDate(target.getDate() + 1);
+      return target.getTime();
+    }
 
-<script>
-const workerUrl = 'https://wnba-rax.tomfconreal.workers.dev/';
-let players = [];
-let sortKey = 'value';
-let sortDir = 'desc';
-let gamesFilter = 'full';
-let selectedPlayer1 = null;
-let selectedPlayer2 = null;
+    async function fetchPlayers(forceRefresh = false) {
+      // Using in-memory cache instead of localStorage for artifact compatibility
+      if (!forceRefresh && window.playersCache && window.cacheExpiry && Date.now() < window.cacheExpiry) {
+        allPlayers = JSON.parse(JSON.stringify(window.playersCache));
+        allPlayers.forEach(calculateStats);
+        players = [...allPlayers];
+        applyCurrentFilters();
+        return;
+      }
+      
+      try {
+        const res = await fetch(workerUrl);
+        const json = await res.json();
+        allPlayers = json.items.map(item => ({
+          id: item.id,
+          firstName: item.firstName,
+          lastName: item.lastName,
+          value: Number(item.value),
+          details: []
+        }));
+        await Promise.all(allPlayers.map(fetchPlayerDetails));
+        players = [...allPlayers]; // Copy for filtering
+        window.playersCache = JSON.parse(JSON.stringify(allPlayers));
+        window.cacheExpiry = next7AMEST();
+        applyCurrentFilters();
+      } catch (error) {
+        console.error('Error fetching players:', error);
+        // Show error message to user
+        document.getElementById('playerBody').innerHTML = '<tr><td colspan="8">Error loading data. Please try again later.</td></tr>';
+      }
+    }
 
-function formatNumber(num) {
-  return num.toLocaleString();
-}
+    async function fetchPlayerDetails(player) {
+      try {
+        const res = await fetch(`${workerUrl}player?id=${player.id}`);
+        const details = await res.json();
+        player.details = details;
+        calculateStats(player);
+      } catch (error) {
+        console.error(`Error fetching details for player ${player.firstName} ${player.lastName}:`, error);
+        // Set empty details if fetch fails
+        player.details = [];
+        calculateStats(player);
+      }
+    }
 
-function next7AMEST() {
-  const now = new Date();
-  const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const target = new Date(estNow);
-  target.setHours(7, 0, 0, 0);
-  if (estNow >= target) target.setDate(target.getDate() + 1);
-  return target.getTime();
-}
+    function calculateStats(player) {
+      const entries = [...(player.details || [])];
+      if (gamesFilter !== 'full') entries.splice(0, entries.length - parseInt(gamesFilter));
+      const earnings = entries.map(g => g.earnings);
+      player.gamesPlayed = earnings.length;
+      player.raxPerGame = earnings.length > 0 ? earnings.reduce((a,b) => a + b, 0) / earnings.length : 0;
+      player.high = earnings.length ? Math.max(...earnings) : 0;
+      player.low = earnings.length ? Math.min(...earnings) : 0;
+      player.stdDev = earnings.length > 1 ? stdDev(earnings) : 0;
+      player.last5 = earnings.slice(-5);
+      player.value = earnings.reduce((a,b) => a + b, 0);
+      
+      // Calculate hot/cold status
+      player.hotColdStatus = '';
+      if (player.last5.length >= 3) {
+        const recentAvg = player.last5.reduce((a,b) => a + b, 0) / player.last5.length;
+        if (recentAvg > player.raxPerGame * 1.2) {
+          player.hotColdStatus = 'hot';
+        } else if (recentAvg < player.raxPerGame * 0.8) {
+          player.hotColdStatus = 'cold';
+        }
+      }
+    }
 
-function setSort(key) {
-  if (sortKey === key) {
-    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortKey = key;
-    sortDir = 'desc';
-  }
-  renderTable();
-}
+    function getHotColdLabel(status) {
+      if (status === 'hot') {
+        return '<span class="hot-label">HOT</span>';
+      } else if (status === 'cold') {
+        return '<span class="cold-label">COLD</span>';
+      }
+      return '';
+    }
 
-async function fetchPlayers() {
-  const cache = localStorage.getItem('playersCache');
-  const cacheTime = parseInt(localStorage.getItem('cacheTimestamp') || '0');
-  const now = Date.now();
-
-  if (cache && now < cacheTime) {
-    players = JSON.parse(cache);
-    players.forEach(p => calculateStats(p));
-    renderTable();
-    return;
-  }
-
-  const res = await fetch(workerUrl);
-  const json = await res.json();
-  players = (json.items || []).map(item => ({
-    id: item.id,
-    firstName: item.firstName,
-    lastName: item.lastName,
-    value: Number(item.value),
-    raxPerGame: null,
-    gamesPlayed: 0,
-    details: null
-  }));
-
-  await Promise.all(players.map(p => fetchPlayerDetails(p)));
-
-  localStorage.setItem('playersCache', JSON.stringify(players));
-  localStorage.setItem('cacheTimestamp', next7AMEST().toString());
-
-  renderTable();
-}
-
-async function fetchPlayerDetails(player) {
-  const res = await fetch(`${workerUrl}player?id=${player.id}`);
-  const details = await res.json();
-  player.details = details;
-  calculateStats(player);
-}
-
-function calculateStats(player) {
-  const entries = [...(player.details || [])];
-  if (gamesFilter !== 'full') {
-    const limit = parseInt(gamesFilter);
-    entries.splice(0, entries.length - limit);
-  }
-  const gameCount = entries.length;
-  const totalRax = entries.reduce((sum, entry) => sum + entry.earnings, 0);
-  player.gamesPlayed = gameCount;
-  player.raxPerGame = gameCount > 0 ? totalRax / gameCount : 0;
-}
-
-function renderTable() {
-  const searchQuery = document.getElementById('playerSearch').value.toLowerCase();
+   function renderTable() {
   const tbody = document.getElementById('playerBody');
   tbody.innerHTML = '';
+  players.sort((a, b) => {
+    let valA = a[currentSort.key];
+    let valB = b[currentSort.key];
+    if (typeof valA === 'string') valA = valA.toLowerCase();
+    if (typeof valB === 'string') valB = valB.toLowerCase();
+    if (valA < valB) return currentSort.dir === 'asc' ? -1 : 1;
+    if (valA > valB) return currentSort.dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+  players.forEach(p => {  // <-- Correct array to render
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.firstName}</td>
+      <td>${p.lastName}${getHotColdLabel(p.hotColdStatus)}</td>
+      <td>${p.gamesPlayed}</td>
+      <td>${p.value.toLocaleString()}</td>
+      <td>${p.raxPerGame.toFixed(2)}</td>
+      <td>${p.high}</td>
+      <td>${p.low}</td>
+      <td>${p.stdDev.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-  players
-    .filter(p =>
-      (`${p.firstName} ${p.lastName}`).toLowerCase().includes(searchQuery)
-    )
-    .sort((a, b) => {
-      let av = a[sortKey];
-      let bv = b[sortKey];
-      if (typeof av === 'string') av = av.toLowerCase();
-      if (typeof bv === 'string') bv = bv.toLowerCase();
-      if (av < bv) return sortDir === 'asc' ? -1 : 1;
-      if (av > bv) return sortDir === 'asc' ? 1 : -1;
-      return 0;
-    })
-    .forEach(player => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${player.firstName}</td>
-        <td>${player.lastName}</td>
-        <td>${player.gamesPlayed}</td>
-        <td>${formatNumber(player.value)}</td>
-        <td>${player.raxPerGame.toFixed(2)}</td>
+    function sortTable(key) {
+      if (currentSort.key === key) {
+        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.key = key;
+        currentSort.dir = 'desc';
+      }
+      renderTable();
+    }
+
+    function changeGamesFilter() {
+      gamesFilter = document.getElementById('gamesFilter').value;
+      allPlayers.forEach(calculateStats);
+      applyCurrentFilters();
+    }
+
+    function searchPlayers(query) {
+      searchQuery = query.toLowerCase();
+      applyCurrentFilters();
+      
+      // Show/hide clear button
+      const clearBtn = document.getElementById('clearSearchBtn');
+      clearBtn.style.display = query ? 'block' : 'none';
+    }
+
+    function clearSearch() {
+      document.getElementById('playerSearch').value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').style.display = 'none';
+      applyCurrentFilters();
+    }
+
+    function applyCurrentFilters() {
+      // Start with all players
+      players = [...allPlayers];
+      
+      // Apply search filter
+      if (searchQuery) {
+        players = players.filter(p => 
+          (p.firstName + ' ' + p.lastName).toLowerCase().includes(searchQuery)
+        );
+      }
+      
+      renderTable();
+    }
+
+    function startComparison() {
+      document.getElementById('comparisonInputs').style.display = 'block';
+    }
+
+    function hideComparison() {
+      document.getElementById('comparisonInputs').style.display = 'none';
+      // Clear comparison inputs and results
+      document.getElementById('comparePlayer1').value = '';
+      document.getElementById('comparePlayer2').value = '';
+      document.getElementById('comparisonResult').innerHTML = '';
+      document.getElementById('suggestions1').style.display = 'none';
+      document.getElementById('suggestions2').style.display = 'none';
+    }
+
+    function updateSuggestions(inputElem, divId) {
+      const query = inputElem.value.toLowerCase();
+      const suggestionsDiv = document.getElementById(divId);
+      if (query.length < 1) {
+        suggestionsDiv.style.display = 'none';
+        return;
+      }
+      const matches = allPlayers.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
+      suggestionsDiv.innerHTML = matches.map(p => `<div onclick=\"selectSuggestion('${p.firstName} ${p.lastName}', '${inputElem.id}', '${divId}')\">${p.firstName} ${p.lastName}</div>`).join('');
+      suggestionsDiv.style.display = matches.length ? 'block' : 'none';
+    }
+
+    function selectSuggestion(name, inputId, divId) {
+      document.getElementById(inputId).value = name;
+      document.getElementById(divId).style.display = 'none';
+    }
+
+    function comparePlayers() {
+      const p1Name = document.getElementById('comparePlayer1').value.toLowerCase();
+      const p2Name = document.getElementById('comparePlayer2').value.toLowerCase();
+      const p1 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p1Name);
+      const p2 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p2Name);
+      const resultDiv = document.getElementById('comparisonResult');
+      if (!p1 || !p2) {
+        resultDiv.textContent = 'Player(s) not found.';
+        return;
+      }
+
+      // Helper function to determine if stat is better (higher is better for most stats)
+      function getBetterWorseClasses(val1, val2, lowerIsBetter = false) {
+        if (val1 === val2) return ['', ''];
+        if (lowerIsBetter) {
+          return val1 < val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better'];
+        } else {
+          return val1 > val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better'];
+        }
+      }
+
+      const [totalRaxClass1, totalRaxClass2] = getBetterWorseClasses(p1.value, p2.value);
+      const [raxGameClass1, raxGameClass2] = getBetterWorseClasses(p1.raxPerGame, p2.raxPerGame);
+      const [highClass1, highClass2] = getBetterWorseClasses(p1.high, p2.high);
+      const [lowClass1, lowClass2] = getBetterWorseClasses(p1.low, p2.low);
+      const [stdDevClass1, stdDevClass2] = getBetterWorseClasses(p1.stdDev, p2.stdDev, true); // Lower std dev is better
+
+      resultDiv.innerHTML = `
+        <table style="margin-top:1rem; width: 100%;">
+          <tr><th>Stat</th><th>${p1.firstName} ${p1.lastName}</th><th>${p2.firstName} ${p2.lastName}</th></tr>
+          <tr><td>Total Rax</td><td class="${totalRaxClass1}">${p1.value.toLocaleString()}</td><td class="${totalRaxClass2}">${p2.value.toLocaleString()}</td></tr>
+          <tr><td>Rax/Game</td><td class="${raxGameClass1}">${p1.raxPerGame.toFixed(2)}</td><td class="${raxGameClass2}">${p2.raxPerGame.toFixed(2)}</td></tr>
+          <tr><td>High</td><td class="${highClass1}">${p1.high}</td><td class="${highClass2}">${p2.high}</td></tr>
+          <tr><td>Low</td><td class="${lowClass1}">${p1.low}</td><td class="${lowClass2}">${p2.low}</td></tr>
+          <tr><td>Std Dev</td><td class="${stdDevClass1}">${p1.stdDev.toFixed(2)}</td><td class="${stdDevClass2}">${p2.stdDev.toFixed(2)}</td></tr>
+        </table>
       `;
-      tbody.appendChild(tr);
-    });
+    }
 
-  document.getElementById('loading').style.display = 'none';
-}
+    function showHotCold() {
+      document.querySelector('.table-container').style.display = 'none';
+      document.getElementById('hotColdSection').style.display = 'block';
+      const hotList = document.getElementById('hotPlayers');
+      const coldList = document.getElementById('coldPlayers');
+      hotList.innerHTML = '';
+      coldList.innerHTML = '';
+      players.forEach(p => {
+        if (p.last5.length < 3) return;
+        const recentAvg = p.last5.reduce((a,b) => a + b, 0) / p.last5.length;
+        if (recentAvg > p.raxPerGame * 1.2) {
+          const li = document.createElement('li');
+          li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
+          li.className = 'hot';
+          hotList.appendChild(li);
+        }
+        if (recentAvg < p.raxPerGame * 0.8) {
+          const li = document.createElement('li');
+          li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
+          li.className = 'cold';
+          coldList.appendChild(li);
+        }
+      });
+    }
 
-function startComparison() {
-  document.getElementById('comparisonInputs').style.display = 'flex';
-  document.getElementById('playerTable').style.display = 'none';
-  document.getElementById('comparisonResult').innerHTML = '';
-}
+    function exitHotCold() {
+      document.querySelector('.table-container').style.display = 'block';
+      document.getElementById('hotColdSection').style.display = 'none';
+    }
 
-function exitComparison() {
-  document.getElementById('comparisonInputs').style.display = 'none';
-  document.getElementById('playerTable').style.display = 'table';
-  document.getElementById('comparisonResult').innerHTML = '';
-}
-
-function showSuggestions(inputElem, slot) {
-  const query = inputElem.value.toLowerCase();
-  const suggestionsDiv = document.getElementById('suggestions' + slot);
-  if (query.length < 1) {
-    suggestionsDiv.style.display = 'none';
-    return;
-  }
-  const matched = players.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
-  suggestionsDiv.innerHTML = matched.map(p => `<div onclick="selectPlayer(${p.id}, ${slot})">${p.firstName} ${p.lastName}</div>`).join('');
-  suggestionsDiv.style.display = matched.length ? 'block' : 'none';
-}
-
-function selectPlayer(id, slot) {
-  const player = players.find(p => p.id === id);
-  if (slot === 1) {
-    selectedPlayer1 = player;
-    document.getElementById('comparePlayer1').value = `${player.firstName} ${player.lastName}`;
-    document.getElementById('suggestions1').style.display = 'none';
-  } else {
-    selectedPlayer2 = player;
-    document.getElementById('comparePlayer2').value = `${player.firstName} ${player.lastName}`;
-    document.getElementById('suggestions2').style.display = 'none';
-  }
-}
-
-function comparePlayers() {
-  if (!selectedPlayer1 || !selectedPlayer2) {
-    document.getElementById('comparisonResult').innerHTML = '<p style="color:#f88;">Select both players from the dropdown.</p>';
-    return;
-  }
-
-  calculateStats(selectedPlayer1);
-  calculateStats(selectedPlayer2);
-
-  function compare(val1, val2) {
-    if (val1 > val2) return ['higher', 'lower'];
-    if (val1 < val2) return ['lower', 'higher'];
-    return ['', ''];
-  }
-
-  const [gp1, gp2] = compare(selectedPlayer1.gamesPlayed, selectedPlayer2.gamesPlayed);
-  const [tr1, tr2] = compare(selectedPlayer1.value, selectedPlayer2.value);
-  const [rx1, rx2] = compare(selectedPlayer1.raxPerGame, selectedPlayer2.raxPerGame);
-
-  const tableHTML = `
-    <table class="comparison-table">
-      <tr><th>Stat</th><th>${selectedPlayer1.firstName} ${selectedPlayer1.lastName}</th><th>${selectedPlayer2.firstName} ${selectedPlayer2.lastName}</th></tr>
-      <tr><td>Games Played</td><td class="${gp1}">${selectedPlayer1.gamesPlayed}</td><td class="${gp2}">${selectedPlayer2.gamesPlayed}</td></tr>
-      <tr><td>Total Rax</td><td class="${tr1}">${formatNumber(selectedPlayer1.value)}</td><td class="${tr2}">${formatNumber(selectedPlayer2.value)}</td></tr>
-      <tr><td>Rax/Game</td><td class="${rx1}">${selectedPlayer1.raxPerGame.toFixed(2)}</td><td class="${rx2}">${selectedPlayer2.raxPerGame.toFixed(2)}</td></tr>
-    </table>
-  `;
-  document.getElementById('comparisonResult').innerHTML = tableHTML;
-}
-
-document.getElementById('gamesFilter').addEventListener('change', (e) => {
-  gamesFilter = e.target.value;
-  players.forEach(p => calculateStats(p));
-  renderTable();
-});
-
-fetchPlayers();
-</script>
+    fetchPlayers();
+  </script>
 </body>
 </html>
