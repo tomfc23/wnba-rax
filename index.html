@@ -1,107 +1,110 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WNBA Player Earnings (2025)</title>
-  <style>
-    body { background-color: #121212; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
-    h1 { text-align: center; }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-      margin: 20px 0;
-    }
-    input, select, button {
-      padding: 5px;
-      font-size: 1em;
-      background-color: #1e1e1e;
-      border: 1px solid #555;
-      color: #fff;
-    }
-    .search-suggestions {
-      background-color: #1e1e1e;
-      border: 1px solid #555;
-      max-height: 200px;
-      overflow-y: auto;
-      font-size: 0.9em;
-      position: absolute;
-      z-index: 1000;
-    }
-    .search-suggestions div {
-      padding: 5px;
-      cursor: pointer;
-    }
-    .search-suggestions div:hover {
-      background-color: #333;
-    }
-    .comparison-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: #1e1e1e;
-    }
-    .comparison-table th, .comparison-table td {
-      padding: 10px;
-      border: 1px solid #333;
-      text-align: center;
-    }
-    .higher { color: #4CAF50; font-weight: bold; }
-    .lower { color: #F44336; font-weight: bold; }
-    .relative { position: relative; }
-    table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; }
-    th, td { padding: 10px; border: 1px solid #333; text-align: left; }
-    th { background-color: #333; cursor: pointer; }
-    tr.clickable:hover { background-color: #2a2a2a; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <h1>WNBA Player Earnings (2025)</h1>
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WNBA Rax Stats</title>
+    <style>
+      body { background-color: #121212; color: #fff; font-family: Arial, sans-serif; padding: 20px; }
+      h1 { text-align: center; }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin: 20px 0;
+      }
+      input, select, button {
+        padding: 5px;
+        font-size: 1em;
+        background-color: #1e1e1e;
+        border: 1px solid #555;
+        color: #fff;
+      }
+      .search-suggestions {
+        background-color: #1e1e1e;
+        border: 1px solid #555;
+        max-height: 200px;
+        overflow-y: auto;
+        font-size: 0.9em;
+        position: absolute;
+        z-index: 1000;
+      }
+      .search-suggestions div {
+        padding: 5px;
+        cursor: pointer;
+      }
+      .search-suggestions div:hover {
+        background-color: #333;
+      }
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background-color: #1e1e1e;
+      }
+      .comparison-table th, .comparison-table td {
+        padding: 10px;
+        border: 1px solid #333;
+        text-align: center;
+      }
+      .higher { color: #4CAF50; font-weight: bold; }
+      .lower { color: #F44336; font-weight: bold; }
+      .relative { position: relative; }
+      table { width: 100%; border-collapse: collapse; background-color: #1e1e1e; }
+      th, td { padding: 10px; border: 1px solid #333; text-align: left; }
+      th { background-color: #333; cursor: pointer; }
+      tr.clickable:hover { background-color: #2a2a2a; cursor: pointer; }
+      h4 { text-align: center; font-weight: normal; color: #ccc;}
+      h5 { text-align: center; font-weight: normal; color: #ccc;}
+    </style>
+  </head>
+  <body>
+    <h1>WNBA Rax Stats</h1>
+    <h4>Made by @tomfc</h4>
+    <h5>To apply rax/game filter in comparison mode, select the filter from the dropdown then hit compare again</h5>
 
-  <div class="controls">
-    <input type="text" id="playerSearch" placeholder="Search players..." oninput="renderTable()">
-    <select id="gamesFilter">
-      <option value="full">Full Season</option>
-      <option value="10">Last 10 Games</option>
-      <option value="15">Last 15 Games</option>
-      <option value="20">Last 20 Games</option>
-    </select>
-    <button onclick="startComparison()">Compare Players</button>
-  </div>
-
-  <div id="comparisonInputs" style="display:none; margin-top:10px; flex-wrap: wrap; gap: 5px;">
-    <div class="relative">
-      <input type="text" id="comparePlayer1" placeholder="Search Player 1..." oninput="showSuggestions(this, 1)" autocomplete="off">
-      <div id="suggestions1" class="search-suggestions" style="display:none;"></div>
+    <div class="controls">
+      <input type="text" id="playerSearch" placeholder="Search players..." oninput="renderTable()">
+      <select id="gamesFilter">
+        <option value="full">Full Season</option>
+        <option value="10">Last 10 Games</option>
+        <option value="15">Last 15 Games</option>
+        <option value="20">Last 20 Games</option>
+      </select>
+      <button onclick="startComparison()">Compare Players</button>
     </div>
-    <div class="relative">
-      <input type="text" id="comparePlayer2" placeholder="Search Player 2..." oninput="showSuggestions(this, 2)" autocomplete="off">
-      <div id="suggestions2" class="search-suggestions" style="display:none;"></div>
+
+    <div id="comparisonInputs" style="display:none; margin-top:10px; flex-wrap: wrap; gap: 5px;">
+      <div class="relative">
+        <input type="text" id="comparePlayer1" placeholder="Search Player 1..." oninput="showSuggestions(this, 1)" autocomplete="off">
+        <div id="suggestions1" class="search-suggestions" style="display:none;"></div>
+      </div>
+      <div class="relative">
+        <input type="text" id="comparePlayer2" placeholder="Search Player 2..." oninput="showSuggestions(this, 2)" autocomplete="off">
+        <div id="suggestions2" class="search-suggestions" style="display:none;"></div>
+      </div>
+      <button onclick="comparePlayers()">Compare Now</button>
+      <button onclick="exitComparison()">Back</button>
     </div>
-    <button onclick="comparePlayers()">Compare Now</button>
-    <button onclick="exitComparison()">Back</button>
-  </div>
 
-  <div id="comparisonResult"></div>
+    <div id="comparisonResult"></div>
 
-  <div id="loading">Loading players...</div>
-  <div id="error" style="display:none; color:#f88;"></div>
+    <div id="loading">Loading players...</div>
+    <div id="error" style="display:none; color:#f88;"></div>
 
-  <table id="playerTable">
-    <thead>
-      <tr>
-        <th data-key="firstName">First Name</th>
-        <th data-key="lastName">Last Name</th>
-        <th data-key="gamesPlayed">Games Played</th>
-        <th data-key="value">Total Rax</th>
-        <th data-key="raxPerGame">Rax/Game</th>
-      </tr>
-    </thead>
-    <tbody id="playerBody"></tbody>
-  </table>
-
+    <table id="playerTable">
+      <thead>
+        <tr>
+          <th data-key="firstName">First Name</th>
+          <th data-key="lastName">Last Name</th>
+          <th data-key="gamesPlayed">Games Played</th>
+          <th data-key="value">Total Rax</th>
+          <th data-key="raxPerGame">Rax/Game</th>
+        </tr>
+      </thead>
+      <tbody id="playerBody"></tbody>
+    </table>
 <script>
 const workerUrl = 'https://wnba-rax.tomfconreal.workers.dev/';
 let players = [];
@@ -115,7 +118,27 @@ function formatNumber(num) {
   return num.toLocaleString();
 }
 
+function next7AMEST() {
+  const now = new Date();
+  const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const target = new Date(estNow);
+  target.setHours(7, 0, 0, 0);
+  if (estNow >= target) target.setDate(target.getDate() + 1);
+  return target.getTime();
+}
+
 async function fetchPlayers() {
+  const cache = localStorage.getItem('playersCache');
+  const cacheTime = parseInt(localStorage.getItem('cacheTimestamp') || '0');
+  const now = Date.now();
+
+  if (cache && now < cacheTime) {
+    players = JSON.parse(cache);
+    players.forEach(p => calculateStats(p));
+    renderTable();
+    return;
+  }
+
   const res = await fetch(workerUrl);
   const json = await res.json();
   players = (json.items || []).map(item => ({
@@ -127,7 +150,10 @@ async function fetchPlayers() {
     gamesPlayed: 0,
     details: null
   }));
-  fetchAllPlayerDetails();
+
+  await fetchAllPlayerDetails();
+  localStorage.setItem('playersCache', JSON.stringify(players));
+  localStorage.setItem('cacheTimestamp', next7AMEST().toString());
 }
 
 async function fetchPlayerDetails(player) {
@@ -143,7 +169,7 @@ async function fetchAllPlayerDetails() {
 }
 
 function calculateStats(player) {
-  const entries = [...player.details];
+  const entries = [...(player.details || [])];
   if (gamesFilter !== 'full') {
     const limit = parseInt(gamesFilter);
     entries.splice(0, entries.length - limit);
@@ -230,6 +256,10 @@ function comparePlayers() {
     return;
   }
 
+  // Recalculate using active filter before comparing
+  calculateStats(selectedPlayer1);
+  calculateStats(selectedPlayer2);
+
   function compare(val1, val2) {
     if (val1 > val2) return ['higher', 'lower'];
     if (val1 < val2) return ['lower', 'higher'];
@@ -259,5 +289,5 @@ document.getElementById('gamesFilter').addEventListener('change', (e) => {
 
 fetchPlayers();
 </script>
-</body>
-</html>
+  </body>
+  </html>
