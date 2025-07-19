@@ -492,6 +492,15 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(59, 130, 246, 0.7);
     }
+    #comparisonResult {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+#comparisonResult table {
+  min-width: 700px; /* or more if needed */
+  border-collapse: collapse;
+}
   </style>
 </head>
 <body>
@@ -567,241 +576,247 @@
   </div>
 
   <script>
-    const workerUrl = 'https://wnba-rax.tomfconreal.workers.dev/';
-    let players = [];
-    let allPlayers = []; // Store original unfiltered list
-    let currentSort = { key: 'value', dir: 'desc' };
-    let gamesFilter = 'full';
-    let searchQuery = '';
+  const workerUrl = 'https://wnba-rax.tomfconreal.workers.dev/';
+  let players = [];
+  let allPlayers = [];
+  let currentSort = { key: 'value', dir: 'desc' };
+  let gamesFilter = 'full';
+  let searchQuery = '';
 
-    function stdDev(values) {
-      const avg = values.reduce((a,b) => a + b, 0) / values.length;
-      const squareDiffs = values.map(v => Math.pow(v - avg, 2));
-      return Math.sqrt(squareDiffs.reduce((a,b) => a + b, 0) / values.length);
+  /** ----------------------
+   * Caching & 7 AM Refresh
+   * ---------------------- */
+  function isDataStale() {
+    const lastUpdate = localStorage.getItem('lastUpdate');
+    if (!lastUpdate) return true;
+
+    const now = new Date();
+    const utcOffset = now.getTimezoneOffset();
+    const estOffset = 300; // EST = UTC-5
+    const localToEst = estOffset - utcOffset;
+    const estNow = new Date(now.getTime() + localToEst * 60000);
+
+    const updateDate = new Date(lastUpdate);
+    const estUpdateDate = new Date(updateDate.getTime() + localToEst * 60000);
+
+    const dayChanged = estNow.toDateString() !== estUpdateDate.toDateString();
+    const past7am = estNow.getHours() >= 7;
+    return dayChanged && past7am;
+  }
+
+  async function loadPlayerData(forceRefresh = false) {
+    if (!forceRefresh && !isDataStale() && localStorage.getItem('playerData')) {
+      console.log("Loaded players from localStorage.");
+      const cachedData = JSON.parse(localStorage.getItem('playerData'));
+      allPlayers = cachedData;
+      allPlayers.forEach(calculateStats);
+      players = [...allPlayers];
+      applyCurrentFilters();
+      return;
     }
 
-    function next7AMEST() {
-      const now = new Date();
-      const estNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-      const target = new Date(estNow);
-      target.setHours(7, 0, 0, 0);
-      if (estNow >= target) target.setDate(target.getDate() + 1);
-      return target.getTime();
-    }
+    console.log("Fetching fresh data from API...");
+    try {
+      const res = await fetch(workerUrl);
+      const json = await res.json();
+      allPlayers = json.items.map(item => ({
+        id: item.id,
+        firstName: item.firstName,
+        lastName: item.lastName,
+        value: Number(item.value),
+        details: []
+      }));
+      await Promise.all(allPlayers.map(fetchPlayerDetails));
+      players = [...allPlayers];
 
-    async function fetchPlayers(forceRefresh = false) {
-      // Using in-memory cache instead of localStorage for artifact compatibility
-      if (!forceRefresh && window.playersCache && window.cacheExpiry && Date.now() < window.cacheExpiry) {
-        allPlayers = JSON.parse(JSON.stringify(window.playersCache));
-        allPlayers.forEach(calculateStats);
+      // Save to localStorage
+      localStorage.setItem('playerData', JSON.stringify(allPlayers));
+      localStorage.setItem('lastUpdate', new Date().toISOString());
+
+      applyCurrentFilters();
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      // Fallback to old cached data
+      if (localStorage.getItem('playerData')) {
+        allPlayers = JSON.parse(localStorage.getItem('playerData'));
         players = [...allPlayers];
         applyCurrentFilters();
-        return;
-      }
-      
-      try {
-        const res = await fetch(workerUrl);
-        const json = await res.json();
-        allPlayers = json.items.map(item => ({
-          id: item.id,
-          firstName: item.firstName,
-          lastName: item.lastName,
-          value: Number(item.value),
-          details: []
-        }));
-        await Promise.all(allPlayers.map(fetchPlayerDetails));
-        players = [...allPlayers]; // Copy for filtering
-        window.playersCache = JSON.parse(JSON.stringify(allPlayers));
-        window.cacheExpiry = next7AMEST();
-        applyCurrentFilters();
-      } catch (error) {
-        console.error('Error fetching players:', error);
-        // Show error message to user
-        document.getElementById('playerBody').innerHTML = '<tr><td colspan="8">Error loading data. Please try again later.</td></tr>';
-      }
-    }
-
-    async function fetchPlayerDetails(player) {
-      try {
-        const res = await fetch(`${workerUrl}player?id=${player.id}`);
-        const details = await res.json();
-        player.details = details;
-        calculateStats(player);
-      } catch (error) {
-        console.error(`Error fetching details for player ${player.firstName} ${player.lastName}:`, error);
-        // Set empty details if fetch fails
-        player.details = [];
-        calculateStats(player);
-      }
-    }
-
-    function calculateStats(player) {
-      const entries = [...(player.details || [])];
-      if (gamesFilter !== 'full') entries.splice(0, entries.length - parseInt(gamesFilter));
-      const earnings = entries.map(g => g.earnings);
-      player.gamesPlayed = earnings.length;
-      player.raxPerGame = earnings.length > 0 ? earnings.reduce((a,b) => a + b, 0) / earnings.length : 0;
-      player.high = earnings.length ? Math.max(...earnings) : 0;
-      player.low = earnings.length ? Math.min(...earnings) : 0;
-      player.stdDev = earnings.length > 1 ? stdDev(earnings) : 0;
-      player.last5 = earnings.slice(-5);
-      player.value = earnings.reduce((a,b) => a + b, 0);
-      
-      // Calculate hot/cold status
-      player.hotColdStatus = '';
-      if (player.last5.length >= 3) {
-        const recentAvg = player.last5.reduce((a,b) => a + b, 0) / player.last5.length;
-        if (recentAvg > player.raxPerGame * 1.2) {
-          player.hotColdStatus = 'hot';
-        } else if (recentAvg < player.raxPerGame * 0.8) {
-          player.hotColdStatus = 'cold';
-        }
-      }
-    }
-
-    function getHotColdLabel(status) {
-      if (status === 'hot') {
-        return '<span class="hot-label">HOT</span>';
-      } else if (status === 'cold') {
-        return '<span class="cold-label">COLD</span>';
-      }
-      return '';
-    }
-
-   function renderTable() {
-  const tbody = document.getElementById('playerBody');
-  tbody.innerHTML = '';
-  players.sort((a, b) => {
-    let valA = a[currentSort.key];
-    let valB = b[currentSort.key];
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
-    if (valA < valB) return currentSort.dir === 'asc' ? -1 : 1;
-    if (valA > valB) return currentSort.dir === 'asc' ? 1 : -1;
-    return 0;
-  });
-  players.forEach(p => {  // <-- Correct array to render
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.firstName}</td>
-      <td>${p.lastName}${getHotColdLabel(p.hotColdStatus)}</td>
-      <td>${p.gamesPlayed}</td>
-      <td>${p.value.toLocaleString()}</td>
-      <td>${p.raxPerGame.toFixed(2)}</td>
-      <td>${p.high}</td>
-      <td>${p.low}</td>
-      <td>${p.stdDev.toFixed(2)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-    function sortTable(key) {
-      if (currentSort.key === key) {
-        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
       } else {
-        currentSort.key = key;
-        currentSort.dir = 'desc';
+        document.getElementById('playerBody').innerHTML =
+          '<tr><td colspan="8">Error loading data. Please try again later.</td></tr>';
       }
-      renderTable();
     }
+  }
 
-    function changeGamesFilter() {
-      gamesFilter = document.getElementById('gamesFilter').value;
-      allPlayers.forEach(calculateStats);
-      applyCurrentFilters();
+  async function fetchPlayerDetails(player) {
+    try {
+      const res = await fetch(`${workerUrl}player?id=${player.id}`);
+      const details = await res.json();
+      player.details = details;
+      calculateStats(player);
+    } catch (error) {
+      console.error(`Error fetching details for ${player.firstName} ${player.lastName}:`, error);
+      player.details = [];
+      calculateStats(player);
     }
+  }
 
-    function searchPlayers(query) {
-      searchQuery = query.toLowerCase();
-      applyCurrentFilters();
-      
-      // Show/hide clear button
-      const clearBtn = document.getElementById('clearSearchBtn');
-      clearBtn.style.display = query ? 'block' : 'none';
+  /** ----------------------
+   *  Stats & Table Rendering
+   * ---------------------- */
+  function stdDev(values) {
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const squareDiffs = values.map(v => Math.pow(v - avg, 2));
+    return Math.sqrt(squareDiffs.reduce((a, b) => a + b, 0) / values.length);
+  }
+
+  function calculateStats(player) {
+    const entries = [...(player.details || [])];
+    if (gamesFilter !== 'full') entries.splice(0, entries.length - parseInt(gamesFilter));
+    const earnings = entries.map(g => g.earnings);
+    player.gamesPlayed = earnings.length;
+    player.raxPerGame = earnings.length > 0 ? earnings.reduce((a, b) => a + b, 0) / earnings.length : 0;
+    player.high = earnings.length ? Math.max(...earnings) : 0;
+    player.low = earnings.length ? Math.min(...earnings) : 0;
+    player.stdDev = earnings.length > 1 ? stdDev(earnings) : 0;
+    player.last5 = earnings.slice(-5);
+    player.value = earnings.reduce((a, b) => a + b, 0);
+
+    // Hot/Cold tagging
+    player.hotColdStatus = '';
+    if (player.last5.length >= 3) {
+      const recentAvg = player.last5.reduce((a, b) => a + b, 0) / player.last5.length;
+      if (recentAvg > player.raxPerGame * 1.2) player.hotColdStatus = 'hot';
+      else if (recentAvg < player.raxPerGame * 0.8) player.hotColdStatus = 'cold';
     }
+  }
 
-    function clearSearch() {
-      document.getElementById('playerSearch').value = '';
-      searchQuery = '';
-      document.getElementById('clearSearchBtn').style.display = 'none';
-      applyCurrentFilters();
+  function getHotColdLabel(status) {
+    if (status === 'hot') return '<span class="hot-label">HOT</span>';
+    if (status === 'cold') return '<span class="cold-label">COLD</span>';
+    return '';
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('playerBody');
+    tbody.innerHTML = '';
+    players.sort((a, b) => {
+      let valA = a[currentSort.key];
+      let valB = b[currentSort.key];
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      return currentSort.dir === 'asc' ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+    });
+    players.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.firstName}</td>
+        <td>${p.lastName}${getHotColdLabel(p.hotColdStatus)}</td>
+        <td>${p.gamesPlayed}</td>
+        <td>${p.value.toLocaleString()}</td>
+        <td>${p.raxPerGame.toFixed(2)}</td>
+        <td>${p.high}</td>
+        <td>${p.low}</td>
+        <td>${p.stdDev.toFixed(2)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  /** ----------------------
+   *  Sorting, Filtering, Search
+   * ---------------------- */
+  function sortTable(key) {
+    if (currentSort.key === key) currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    else { currentSort.key = key; currentSort.dir = 'desc'; }
+    renderTable();
+  }
+
+  function changeGamesFilter() {
+    gamesFilter = document.getElementById('gamesFilter').value;
+    allPlayers.forEach(calculateStats);
+    applyCurrentFilters();
+  }
+
+  function searchPlayers(query) {
+    searchQuery = query.toLowerCase();
+    applyCurrentFilters();
+    document.getElementById('clearSearchBtn').style.display = query ? 'block' : 'none';
+  }
+
+  function clearSearch() {
+    document.getElementById('playerSearch').value = '';
+    searchQuery = '';
+    document.getElementById('clearSearchBtn').style.display = 'none';
+    applyCurrentFilters();
+  }
+
+  function applyCurrentFilters() {
+    players = [...allPlayers];
+    if (searchQuery) {
+      players = players.filter(p =>
+        (p.firstName + ' ' + p.lastName).toLowerCase().includes(searchQuery)
+      );
     }
+    renderTable();
+  }
 
-    function applyCurrentFilters() {
-      // Start with all players
-      players = [...allPlayers];
-      
-      // Apply search filter
-      if (searchQuery) {
-        players = players.filter(p => 
-          (p.firstName + ' ' + p.lastName).toLowerCase().includes(searchQuery)
-        );
-      }
-      
-      renderTable();
-    }
+  /** ----------------------
+   *  Comparison Logic
+   * ---------------------- */
+  function startComparison() {
+    document.getElementById('comparisonInputs').style.display = 'block';
+  }
 
-    function startComparison() {
-      document.getElementById('comparisonInputs').style.display = 'block';
-    }
+  function hideComparison() {
+    document.getElementById('comparisonInputs').style.display = 'none';
+    document.getElementById('comparePlayer1').value = '';
+    document.getElementById('comparePlayer2').value = '';
+    document.getElementById('comparisonResult').innerHTML = '';
+    document.getElementById('suggestions1').style.display = 'none';
+    document.getElementById('suggestions2').style.display = 'none';
+  }
 
-    function hideComparison() {
-      document.getElementById('comparisonInputs').style.display = 'none';
-      // Clear comparison inputs and results
-      document.getElementById('comparePlayer1').value = '';
-      document.getElementById('comparePlayer2').value = '';
-      document.getElementById('comparisonResult').innerHTML = '';
-      document.getElementById('suggestions1').style.display = 'none';
-      document.getElementById('suggestions2').style.display = 'none';
-    }
+  function updateSuggestions(inputElem, divId) {
+    const query = inputElem.value.toLowerCase();
+    const suggestionsDiv = document.getElementById(divId);
+    if (query.length < 1) return (suggestionsDiv.style.display = 'none');
+    const matches = allPlayers.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
+    suggestionsDiv.innerHTML = matches.map(p =>
+      `<div onclick="selectSuggestion('${p.firstName} ${p.lastName}', '${inputElem.id}', '${divId}')">${p.firstName} ${p.lastName}</div>`
+    ).join('');
+    suggestionsDiv.style.display = matches.length ? 'block' : 'none';
+  }
 
-    function updateSuggestions(inputElem, divId) {
-      const query = inputElem.value.toLowerCase();
-      const suggestionsDiv = document.getElementById(divId);
-      if (query.length < 1) {
-        suggestionsDiv.style.display = 'none';
-        return;
-      }
-      const matches = allPlayers.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
-      suggestionsDiv.innerHTML = matches.map(p => `<div onclick=\"selectSuggestion('${p.firstName} ${p.lastName}', '${inputElem.id}', '${divId}')\">${p.firstName} ${p.lastName}</div>`).join('');
-      suggestionsDiv.style.display = matches.length ? 'block' : 'none';
-    }
+  function selectSuggestion(name, inputId, divId) {
+    document.getElementById(inputId).value = name;
+    document.getElementById(divId).style.display = 'none';
+  }
 
-    function selectSuggestion(name, inputId, divId) {
-      document.getElementById(inputId).value = name;
-      document.getElementById(divId).style.display = 'none';
-    }
+  function comparePlayers() {
+    const p1Name = document.getElementById('comparePlayer1').value.toLowerCase();
+    const p2Name = document.getElementById('comparePlayer2').value.toLowerCase();
+    const p1 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p1Name);
+    const p2 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p2Name);
+    const resultDiv = document.getElementById('comparisonResult');
+    if (!p1 || !p2) return (resultDiv.textContent = 'Player(s) not found.');
 
-    function comparePlayers() {
-      const p1Name = document.getElementById('comparePlayer1').value.toLowerCase();
-      const p2Name = document.getElementById('comparePlayer2').value.toLowerCase();
-      const p1 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p1Name);
-      const p2 = allPlayers.find(p => (p.firstName + ' ' + p.lastName).toLowerCase() === p2Name);
-      const resultDiv = document.getElementById('comparisonResult');
-      if (!p1 || !p2) {
-        resultDiv.textContent = 'Player(s) not found.';
-        return;
-      }
+    const getBetterWorseClasses = (val1, val2, lowerIsBetter = false) => {
+      if (val1 === val2) return ['', ''];
+      return lowerIsBetter
+        ? (val1 < val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better'])
+        : (val1 > val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better']);
+    };
 
-      // Helper function to determine if stat is better (higher is better for most stats)
-      function getBetterWorseClasses(val1, val2, lowerIsBetter = false) {
-        if (val1 === val2) return ['', ''];
-        if (lowerIsBetter) {
-          return val1 < val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better'];
-        } else {
-          return val1 > val2 ? ['stat-better', 'stat-worse'] : ['stat-worse', 'stat-better'];
-        }
-      }
+    const [totalRaxClass1, totalRaxClass2] = getBetterWorseClasses(p1.value, p2.value);
+    const [raxGameClass1, raxGameClass2] = getBetterWorseClasses(p1.raxPerGame, p2.raxPerGame);
+    const [highClass1, highClass2] = getBetterWorseClasses(p1.high, p2.high);
+    const [lowClass1, lowClass2] = getBetterWorseClasses(p1.low, p2.low);
+    const [stdDevClass1, stdDevClass2] = getBetterWorseClasses(p1.stdDev, p2.stdDev, true);
 
-      const [totalRaxClass1, totalRaxClass2] = getBetterWorseClasses(p1.value, p2.value);
-      const [raxGameClass1, raxGameClass2] = getBetterWorseClasses(p1.raxPerGame, p2.raxPerGame);
-      const [highClass1, highClass2] = getBetterWorseClasses(p1.high, p2.high);
-      const [lowClass1, lowClass2] = getBetterWorseClasses(p1.low, p2.low);
-      const [stdDevClass1, stdDevClass2] = getBetterWorseClasses(p1.stdDev, p2.stdDev, true); // Lower std dev is better
-
-      resultDiv.innerHTML = `
-        <table style="margin-top:1rem; width: 100%;">
+    resultDiv.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table style="margin-top:1rem; min-width:600px; width: 100%;">
           <tr><th>Stat</th><th>${p1.firstName} ${p1.lastName}</th><th>${p2.firstName} ${p2.lastName}</th></tr>
           <tr><td>Total Rax</td><td class="${totalRaxClass1}">${p1.value.toLocaleString()}</td><td class="${totalRaxClass2}">${p2.value.toLocaleString()}</td></tr>
           <tr><td>Rax/Game</td><td class="${raxGameClass1}">${p1.raxPerGame.toFixed(2)}</td><td class="${raxGameClass2}">${p2.raxPerGame.toFixed(2)}</td></tr>
@@ -809,40 +824,48 @@
           <tr><td>Low</td><td class="${lowClass1}">${p1.low}</td><td class="${lowClass2}">${p2.low}</td></tr>
           <tr><td>Std Dev</td><td class="${stdDevClass1}">${p1.stdDev.toFixed(2)}</td><td class="${stdDevClass2}">${p2.stdDev.toFixed(2)}</td></tr>
         </table>
-      `;
-    }
+      </div>
+    `;
+  }
 
-    function showHotCold() {
-      document.querySelector('.table-container').style.display = 'none';
-      document.getElementById('hotColdSection').style.display = 'block';
-      const hotList = document.getElementById('hotPlayers');
-      const coldList = document.getElementById('coldPlayers');
-      hotList.innerHTML = '';
-      coldList.innerHTML = '';
-      players.forEach(p => {
-        if (p.last5.length < 3) return;
-        const recentAvg = p.last5.reduce((a,b) => a + b, 0) / p.last5.length;
-        if (recentAvg > p.raxPerGame * 1.2) {
-          const li = document.createElement('li');
-          li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
-          li.className = 'hot';
-          hotList.appendChild(li);
-        }
-        if (recentAvg < p.raxPerGame * 0.8) {
-          const li = document.createElement('li');
-          li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
-          li.className = 'cold';
-          coldList.appendChild(li);
-        }
-      });
-    }
+  /** ----------------------
+   *  Hot/Cold Section
+   * ---------------------- */
+  function showHotCold() {
+    document.querySelector('.table-container').style.display = 'none';
+    document.getElementById('hotColdSection').style.display = 'block';
+    const hotList = document.getElementById('hotPlayers');
+    const coldList = document.getElementById('coldPlayers');
+    hotList.innerHTML = '';
+    coldList.innerHTML = '';
+    players.forEach(p => {
+      if (p.last5.length < 3) return;
+      const recentAvg = p.last5.reduce((a, b) => a + b, 0) / p.last5.length;
+      if (recentAvg > p.raxPerGame * 1.2) {
+        const li = document.createElement('li');
+        li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
+        li.className = 'hot';
+        hotList.appendChild(li);
+      } else if (recentAvg < p.raxPerGame * 0.8) {
+        const li = document.createElement('li');
+        li.textContent = `${p.firstName} ${p.lastName} (Recent Avg: ${recentAvg.toFixed(2)})`;
+        li.className = 'cold';
+        coldList.appendChild(li);
+      }
+    });
+  }
 
-    function exitHotCold() {
-      document.querySelector('.table-container').style.display = 'block';
-      document.getElementById('hotColdSection').style.display = 'none';
-    }
+  function exitHotCold() {
+    document.querySelector('.table-container').style.display = 'block';
+    document.getElementById('hotColdSection').style.display = 'none';
+  }
 
-    fetchPlayers();
-  </script>
+  /** ----------------------
+   *  Initialize
+   * ---------------------- */
+  document.addEventListener('DOMContentLoaded', () => {
+    loadPlayerData();
+  });
+</script>
 </body>
 </html>
